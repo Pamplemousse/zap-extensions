@@ -1,0 +1,21 @@
+<zapaddon>
+	<name>Front-End Scanner</name>
+	<version>1</version>
+	<description>Scan modern web applications relying heavily on Javascript.</description>
+	<author>ZAP Dev Team</author>
+  <status>alpha</status>
+	<url></url>
+	<changes></changes>
+	<dependencies>
+	</dependencies>
+	<extensions>
+		<extension>org.zaproxy.zap.extension.frontEndScanner.ExtensionFrontEndScanner</extension>
+	</extensions>
+	<ascanrules/>
+	<pscanrules/>
+	<filters/>
+	<files>
+	</files>
+	<not-before-version>2.7.0</not-before-version>
+	<not-from-version></not-from-version>
+</zapaddon>
