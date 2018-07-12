@@ -29,9 +29,11 @@ import javax.swing.JTextPane;
 
 import org.apache.log4j.Logger;
 import org.parosproxy.paros.Constant;
+import org.parosproxy.paros.core.proxy.ProxyListener;
 import org.parosproxy.paros.extension.AbstractPanel;
 import org.parosproxy.paros.extension.ExtensionAdaptor;
 import org.parosproxy.paros.extension.ExtensionHook;
+import org.parosproxy.paros.network.HttpMessage;
 import org.parosproxy.paros.view.View;
 import org.zaproxy.zap.utils.FontUtils;
 import org.zaproxy.zap.view.ZapMenuItem;
@@ -44,7 +46,7 @@ import org.zaproxy.zap.view.ZapMenuItem;
  *
  * @see #hook(ExtensionHook)
  */
-public class ExtensionFrontEndScanner extends ExtensionAdaptor {
+public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyListener {
 
     // The name is public so that other extensions can access it
     public static final String NAME = "ExtensionFrontEndScanner";
@@ -77,6 +79,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor {
         super.hook(extensionHook);
 
         extensionHook.addApiImplementor(this.api);
+        extensionHook.addProxyListener(this);
 
         if (getView() != null) {
             // Register our top menu item, as long as we're not running as a daemon
@@ -192,5 +195,20 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor {
         } catch (MalformedURLException e) {
             return null;
         }
+    }
+    @Override
+    public boolean onHttpRequestSend(HttpMessage msg) {
+        return true;
+    }
+
+    @Override
+    public boolean onHttpResponseReceive(HttpMessage msg) {
+        LOGGER.debug("onHttpResponseReceive");
+        return true;
+    }
+
+    @Override
+    public int getArrangeableListenerOrder() {
+        return 0;
     }
 }
