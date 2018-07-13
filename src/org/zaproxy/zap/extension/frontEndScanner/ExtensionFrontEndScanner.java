@@ -27,6 +27,10 @@ import java.nio.file.Files;
 import javax.swing.ImageIcon;
 import javax.swing.JTextPane;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 import org.apache.log4j.Logger;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.proxy.ProxyListener;
@@ -73,6 +77,8 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
     public ExtensionFrontEndScanner() {
         super(NAME);
     }
+
+    private boolean frontEndScannerEnabled = true;
 
     @Override
     public void hook(ExtensionHook extensionHook) {
@@ -203,7 +209,25 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
 
     @Override
     public boolean onHttpResponseReceive(HttpMessage msg) {
-        LOGGER.debug("onHttpResponseReceive");
+        if (frontEndScannerEnabled && msg.getResponseHeader().isHtml()) {
+            try {
+                String html = msg.getResponseBody().toString();
+                Document document = Jsoup.parse(html);
+                Element head = document.select("head").first();
+
+                String injectedContent =
+                  "<script type='text/javascript'>console.log('zap injection');</script>";
+                head.prepend(injectedContent);
+
+                String newBody = document.html();
+                msg.getResponseBody().setBody(newBody);
+
+                int newLength = msg.getResponseBody().length();
+                msg.getResponseHeader().setContentLength(newLength);
+            } catch (Exception e) {
+                LOGGER.error(e.getMessage(), e);
+            }
+        }
         return true;
     }
 
