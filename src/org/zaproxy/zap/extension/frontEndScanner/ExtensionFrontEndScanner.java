@@ -19,10 +19,17 @@ package org.zaproxy.zap.extension.frontEndScanner;
 
 import java.awt.CardLayout;
 import java.awt.Font;
+import java.lang.Exception;
+import java.lang.String;
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 import javax.swing.ImageIcon;
 import javax.swing.JTextPane;
@@ -60,6 +67,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
     protected static final String PREFIX = "frontEndScanner";
 
     private static final String RESOURCE = "/org/zaproxy/zap/extension/frontEndScanner/resources";
+    private static final String SCRIPTS_FOLDER = Constant.getZapHome() + "/scripts/scripts/front-end/";
 
     private static final ImageIcon ICON = new ImageIcon(
             ExtensionFrontEndScanner.class.getResource( RESOURCE + "/cake.png"));
@@ -216,7 +224,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
                 Element head = document.select("head").first();
 
                 String injectedContent =
-                  "<script type='text/javascript'>console.log('zap injection');</script>";
+                  "<script type='text/javascript'>" + userScriptsToInject() + "</script>";
                 head.prepend(injectedContent);
 
                 String newBody = document.html();
@@ -234,5 +242,34 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
     @Override
     public int getArrangeableListenerOrder() {
         return 0;
+    }
+
+    private String userScriptsToInject() throws IOException {
+        Path scriptFolderPath = Paths.get(SCRIPTS_FOLDER);
+        Stream<String> scriptCodes;
+        String result = "";
+
+        try {
+            Stream<Path> scriptFilePaths = Files.list(scriptFolderPath);
+            scriptCodes = scriptFilePaths
+                .map(scriptFileName -> readFromFile(scriptFileName))
+                .map(code -> code.getBytes())
+                .map(code -> new String(code));
+
+            return scriptCodes.reduce(result, String::concat);
+        } catch (UncheckedIOException e) {
+            new IOException(e);
+        }
+
+        return result;
+    }
+
+    private String readFromFile(Path file) throws UncheckedIOException {
+        try {
+            byte[] content = Files.readAllBytes(file);
+            return new String(content);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }
