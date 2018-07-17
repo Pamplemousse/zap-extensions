@@ -29,7 +29,10 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
+import java.util.UUID;
 
 import javax.swing.ImageIcon;
 import javax.swing.JTextPane;
@@ -210,6 +213,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
             return null;
         }
     }
+
     @Override
     public boolean onHttpRequestSend(HttpMessage msg) {
         return true;
@@ -250,13 +254,19 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
         String result = "";
 
         try {
+            List<String> functionNames = new ArrayList<String>();
             Stream<Path> scriptFilePaths = Files.list(scriptFolderPath);
+
             scriptCodes = scriptFilePaths
                 .map(scriptFileName -> readFromFile(scriptFileName))
                 .map(code -> code.getBytes())
-                .map(code -> new String(code));
+                .map(code -> new String(code))
+                // `wrapInFunction` has a side-effect: it updates the `functionNames` List
+                .map(code -> wrapInFunction(code, functionNames));
 
-            return scriptCodes.reduce(result, String::concat);
+            result = scriptCodes.reduce(result, String::concat);
+            result += "const SCRIPTS = [ " + String.join(", ", functionNames) + "];";
+            return result;
         } catch (UncheckedIOException e) {
             new IOException(e);
         }
@@ -271,5 +281,16 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private String wrapInFunction(String javascriptCode, List<String> functionNames) {
+        String id = Long.toString(Math.abs(UUID.randomUUID().getMostSignificantBits()));
+        String functionName = "f_" + id;
+
+        functionNames.add(functionName);
+
+        return new String(
+            "function " + functionName + " () { " + javascriptCode + " };"
+        );
     }
 }
