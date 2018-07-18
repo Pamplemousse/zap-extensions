@@ -70,6 +70,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
     protected static final String PREFIX = "frontEndScanner";
 
     private static final String RESOURCE = "/org/zaproxy/zap/extension/frontEndScanner/resources";
+    private static final String FRONT_END_SCANNER = Constant.getZapHome() + "/frontEndScanner/front-end-scanner.js";
     private static final String SCRIPTS_FOLDER = Constant.getZapHome() + "/scripts/scripts/front-end/";
 
     private static final ImageIcon ICON = new ImageIcon(
@@ -228,7 +229,11 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
                 Element head = document.select("head").first();
 
                 String injectedContent =
-                  "<script type='text/javascript'>" + userScriptsToInject() + "</script>";
+                  "<script type='text/javascript'>"
+                  + userScriptsToInject()
+                  + frontEndScannerCode()
+                  + "</script>";
+
                 head.prepend(injectedContent);
 
                 String newBody = document.html();
@@ -246,6 +251,11 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
     @Override
     public int getArrangeableListenerOrder() {
         return 0;
+    }
+
+    private String frontEndScannerCode() throws IOException {
+        Path frontEndScannerPath = Paths.get(FRONT_END_SCANNER);
+        return readFromFile(frontEndScannerPath);
     }
 
     private String userScriptsToInject() throws IOException {
