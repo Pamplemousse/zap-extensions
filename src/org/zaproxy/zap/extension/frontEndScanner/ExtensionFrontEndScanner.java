@@ -37,9 +37,9 @@ import java.util.UUID;
 import javax.swing.ImageIcon;
 import javax.swing.JTextPane;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import net.htmlparser.jericho.Element;
+import net.htmlparser.jericho.OutputDocument;
+import net.htmlparser.jericho.Source;
 
 import org.apache.log4j.Logger;
 import org.parosproxy.paros.Constant;
@@ -225,22 +225,30 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
         if (frontEndScannerEnabled && msg.getResponseHeader().isHtml()) {
             try {
                 String html = msg.getResponseBody().toString();
-                Document document = Jsoup.parse(html);
-                Element head = document.select("head").first();
 
-                String injectedContent =
-                  "<script type='text/javascript'>"
-                  + userScriptsToInject()
-                  + frontEndScannerCode()
-                  + "</script>";
+                Source document = new Source(html);
+                List<Element> heads = document.getAllElements("head");
+                Element head = heads.isEmpty() ? null : heads.get(0);
 
-                head.prepend(injectedContent);
+                if (head != null) {
+                    String injectedContent =
+                        "<script type='text/javascript'>"
+                        + userScriptsToInject()
+                        + frontEndScannerCode()
+                        + "</script>";
 
-                String newBody = document.html();
-                msg.getResponseBody().setBody(newBody);
+                    OutputDocument newResponseBody = new OutputDocument(document);
+                    int insertPosition = head.getChildElements().get(0).getBegin();
+                    newResponseBody.insert(insertPosition, injectedContent);
 
-                int newLength = msg.getResponseBody().length();
-                msg.getResponseHeader().setContentLength(newLength);
+                    msg.getResponseBody()
+                        .setBody(newResponseBody.toString());
+
+                    int newLength = msg.getResponseBody().length();
+                    msg.getResponseHeader().setContentLength(newLength);
+                } else {
+                    LOGGER.error("<head></head> is missing in the response");
+                }
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
             }

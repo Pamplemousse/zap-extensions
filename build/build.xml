@@ -389,7 +389,7 @@
 		<build-addon name="directorylistv2_3" />
 		<build-addon name="directorylistv2_3_lc" />
 		<build-addon name="fuzzdb" />
-		<build-frontEndScanner-addon />
+		<build-addon name="frontEndScanner" />
 		<build-addon name="gettingStarted" />
 		<build-addon name="groovy" />
 		<build-addon name="help" />
@@ -480,19 +480,6 @@
 	<target name="deploy-directorylistv2_3_lc" description="deploys Directory List v2.3 lower case add-on">
 		<build-deploy-addon name="directorylistv2_3_lc" />
 	</target>
-
-	<macrodef name="build-frontEndScanner-addon" description="Builds the Front-End Scanner add-on">
-		<sequential>
-			<build-addon name="frontEndScanner">
-				<!-- Add the extra classes required -->
-				<jar jarfile="${dist}/${file}" update="true" compress="true">
-					<zipfileset dir="${build}" prefix="">
-						<include name="org/jsoup/**"/>
-					</zipfileset>
-				</jar>
-			</build-addon>
-		</sequential>
-	</macrodef>
 
 	<target name="deploy-frontEndScanner" description="Deploys the front-end scanner add-on">
 		<build-deploy-addon name="frontEndScanner" />
