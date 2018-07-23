@@ -233,8 +233,10 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
                 if (head != null) {
                     String injectedContent =
                         "<script type='text/javascript'>"
-                        + userScriptsToInject()
-                        + frontEndScannerCode()
+                        + "var frontEndScanner=(function() {"
+                        +     userScriptsToInject()
+                        +     frontEndScannerCode()
+                        + "})();"
                         + "</script>";
 
                     OutputDocument newResponseBody = new OutputDocument(document);
