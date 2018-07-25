@@ -22,7 +22,13 @@ package org.zaproxy.zap.extension.frontEndScanner;
 import java.util.Locale;
 
 import org.apache.log4j.Logger;
+import org.parosproxy.paros.control.Control;
+import org.parosproxy.paros.core.scanner.Alert;
+import org.parosproxy.paros.model.HistoryReference;
 import org.parosproxy.paros.network.HttpMessage;
+import org.parosproxy.paros.network.HttpRequestHeader;
+import org.parosproxy.paros.network.HttpResponseHeader;
+import org.zaproxy.zap.extension.alert.ExtensionAlert;
 import org.zaproxy.zap.extension.api.API;
 import org.zaproxy.zap.extension.api.ApiAction;
 import org.zaproxy.zap.extension.api.ApiException;
@@ -30,6 +36,7 @@ import org.zaproxy.zap.extension.api.ApiImplementor;
 import org.zaproxy.zap.extension.api.ApiResponse;
 import org.zaproxy.zap.extension.api.ApiResponseElement;
 
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
 public class FrontEndScannerAPI extends ApiImplementor {
@@ -58,12 +65,45 @@ public class FrontEndScannerAPI extends ApiImplementor {
 
     @Override
     public String handleCallBack(HttpMessage msg) throws ApiException {
+        JSONObject alertParams = JSONObject.fromObject(
+          msg.getRequestBody().toString()
+        ).getJSONObject("alert");
+
         try {
-            LOGGER.debug("message = " + msg.toString());
+            int clientSidePassiveScriptPluginId = 50005;
+
+            HistoryReference historyReference = new HistoryReference(
+                alertParams.getInt("historyReferenceId"),
+                false
+            );
+
+            Alert alert = new Alert(
+                clientSidePassiveScriptPluginId,
+                alertParams.getInt("risk"),
+                alertParams.getInt("confidence"),
+                alertParams.getString("name")
+            );
+            alert.setSource(Alert.Source.PASSIVE);
+            alert.setDescription(alertParams.getString("description"));
+            // alert.setHistoryRef(historyReference);
+
+            ExtensionAlert extAlert = Control
+              .getSingleton()
+              .getExtensionLoader()
+              .getExtension(ExtensionAlert.class);
+
+            extAlert.alertFound(alert, historyReference);
+
+            return "";
+        } catch (JSONException e) {
+            LOGGER.debug(e.getMessage());
+            // TODO: deserialization failed
+            throw new ApiException (ApiException.Type.URL_NOT_FOUND, msg.getRequestHeader().getURI().toString());
         } catch (Exception e) {
+            LOGGER.debug(e.getMessage());
             throw new ApiException (ApiException.Type.URL_NOT_FOUND, msg.getRequestHeader().getURI().toString());
         }
-        throw new ApiException (ApiException.Type.URL_NOT_FOUND, msg.getRequestHeader().getURI().toString());
+        // throw new ApiException (ApiException.Type.URL_NOT_FOUND, msg.getRequestHeader().getURI().toString());
     }
 
     @Override

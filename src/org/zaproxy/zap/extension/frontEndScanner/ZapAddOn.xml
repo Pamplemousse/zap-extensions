@@ -16,6 +16,7 @@
 	<filters/>
 	<files>
 		<file>frontEndScanner/front-end-scanner.js</file>
+		<file>scripts/scripts/scan-jwt-tokens.js</file>
 	</files>
 	<not-before-version>2.7.0</not-before-version>
 	<not-from-version></not-from-version>

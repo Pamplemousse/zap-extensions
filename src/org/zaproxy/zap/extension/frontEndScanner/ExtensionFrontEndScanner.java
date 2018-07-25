@@ -47,8 +47,10 @@ import org.parosproxy.paros.core.proxy.ProxyListener;
 import org.parosproxy.paros.extension.AbstractPanel;
 import org.parosproxy.paros.extension.ExtensionAdaptor;
 import org.parosproxy.paros.extension.ExtensionHook;
+import org.parosproxy.paros.extension.history.ProxyListenerLog;
 import org.parosproxy.paros.network.HttpMessage;
 import org.parosproxy.paros.view.View;
+import org.zaproxy.zap.extension.api.API;
 import org.zaproxy.zap.utils.FontUtils;
 import org.zaproxy.zap.view.ZapMenuItem;
 
@@ -71,7 +73,7 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
 
     private static final String RESOURCE = "/org/zaproxy/zap/extension/frontEndScanner/resources";
     private static final String FRONT_END_SCANNER = Constant.getZapHome() + "/frontEndScanner/front-end-scanner.js";
-    private static final String SCRIPTS_FOLDER = Constant.getZapHome() + "/scripts/scripts/front-end/";
+    private static final String SCRIPTS_FOLDER = Constant.getZapHome() + "/scripts/scripts/";
 
     private static final ImageIcon ICON = new ImageIcon(
             ExtensionFrontEndScanner.class.getResource( RESOURCE + "/cake.png"));
@@ -222,6 +224,11 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
 
     @Override
     public boolean onHttpResponseReceive(HttpMessage msg) {
+        String host = msg.getRequestHeader().getHeader("host");
+        String frontEndApiUrl = API
+            .getInstance()
+            .getCallBackUrl(this.api, new String("https://" + host));
+
         if (frontEndScannerEnabled && msg.getResponseHeader().isHtml()) {
             try {
                 String html = msg.getResponseBody().toString();
@@ -231,9 +238,13 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
                 Element head = heads.isEmpty() ? null : heads.get(0);
 
                 if (head != null) {
+                    int historyReferenceId = msg.getHistoryRef().getHistoryId();
+
                     String injectedContent =
                         "<script type='text/javascript'>"
                         + "var frontEndScanner=(function() {"
+                        +     "const HISTORY_REFERENCE_ID = " + historyReferenceId + ";"
+                        +     "const CALLBACK_ENDPOINT = '" + frontEndApiUrl + "';"
                         +     userScriptsToInject()
                         +     frontEndScannerCode()
                         + "})();"
@@ -260,7 +271,8 @@ public class ExtensionFrontEndScanner extends ExtensionAdaptor implements ProxyL
 
     @Override
     public int getArrangeableListenerOrder() {
-        return 0;
+        // Need to run after the HistoryReference has been saved to the database
+        return ProxyListenerLog.PROXY_LISTENER_ORDER + 42;
     }
 
     private String frontEndScannerCode() throws IOException {
