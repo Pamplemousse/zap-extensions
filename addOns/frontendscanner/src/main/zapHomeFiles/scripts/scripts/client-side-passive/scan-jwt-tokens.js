@@ -21,9 +21,15 @@ function verify(storageEntry) {
 
   if (tokenContent.header.alg === 'HS256') {
     _reportWeakAlgorithm(storageEntry, tokenContent);
-  } else if (tokenContent.header.alg === 'none') {
+  } else if (_isNone(tokenContent.header.alg)) {
     _reportNoneAlgorithm(storageEntry, tokenContent);
   }
+}
+
+// Certain server-side implementation follow the spec a bit more "loosely",
+// and will interpret `None` as `none`.
+function _isNone(algorithm) {
+  return algorithm.toLowerCase() === 'none';
 }
 
 // In case of nested entries (a storage entry having a stringified object as value)
@@ -55,9 +61,7 @@ function _parseJwt(token) {
       .map(x => x.replace('_', '/'))
       .map(window.atob);
 
-    // Get rid of the last element: we will not check integrity.
-    result.splice(-1, 1);
-
+    // Note that we did not check integrity if it is present.
     return {
       header: JSON.parse(result[0]),
       payload: JSON.parse(result[1])
